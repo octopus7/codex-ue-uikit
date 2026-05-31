@@ -23,3 +23,10 @@
 - Treat the image as the authoritative reference for palette, spacing, panel shapes, button states, tags, popup behavior, inventory/grid treatment, side menu structure, and overall composition.
 - UI code may be implemented in C++/UMG, Blueprint-derived widgets, or Slate-backed helpers as appropriate, but the resulting visual style should stay aligned with `lookandfeel.png`.
 - Popup interactions in demo UI should be self-contained by default: buttons may simulate an action visually and close the popup, but should not modify external game state unless explicitly requested.
+
+## Transparent Icon Assets
+
+- When creating transparent icon assets, item icons, inventory icons, or icon sheets for this project, use the project-local `icon-alpha-from-solid-bg` skill at `.codex/skills/icon-alpha-from-solid-bg/SKILL.md`.
+- Generate exactly one source image on a flat, muted, medium-value solid background; avoid neon chroma-key colors and avoid using the background color inside icon subjects.
+- Do not independently generate black and white variants. Run `.codex/skills/icon-alpha-from-solid-bg/scripts/extract-alpha-from-solid-bg.ps1` to derive the black/white debug pair and final transparent PNG from the single source.
+- Inspect the checker preview after extraction. If colored halos remain, adjust the source background or script parameters before using the asset in UMG.

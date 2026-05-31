@@ -24,3 +24,7 @@
 ## 2026-05-31 21:03:11 (elapsed 00:03:11)
 
 - 이미 작성된 `Docs/requests.md`와 `Docs/questions.md` 내용도 한국어로 고친다.
+
+## 2026-05-31 21:17:34 (elapsed 00:17:34)
+
+- `.codex/skills/icon-alpha-from-solid-bg/SKILL.md` 스킬을 찾아 읽고, 투명 아이콘/아이콘 시트 에셋을 만들 때의 간략한 사용처 지침을 `AGENTS.md`에 반영한다.
