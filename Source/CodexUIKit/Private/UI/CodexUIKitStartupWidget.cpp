@@ -9,8 +9,13 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
+#include "UI/CodexUIKitControlsPanelWidget.h"
 #include "UI/CodexUIKitDemoWidget.h"
+#include "UI/CodexUIKitInventoryGridWidget.h"
 #include "UI/CodexUIKitPopupWidget.h"
+#include "UI/CodexUIKitQuestBoardWidget.h"
+#include "UI/CodexUIKitStandalonePanelWidget.h"
+#include "UI/CodexUIKitToastWidget.h"
 #include "UI/CodexUIStyle.h"
 
 namespace
@@ -75,6 +80,18 @@ TSharedRef<SWidget> UCodexUIKitStartupWidget::RebuildWidget()
 	DemoButton->OnClicked.AddDynamic(this, &ThisClass::HandleOpenDemoClicked);
 	AddStartupRow(*Stack, DemoButton, FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
 
+	UButton* QuestButton = MakeStartupButton(*WidgetTree, TEXT("퀘스트 보드 테스트"), ECodexUIButtonKind::Info);
+	QuestButton->OnClicked.AddDynamic(this, &ThisClass::HandleQuestBoardClicked);
+	AddStartupRow(*Stack, QuestButton, FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
+
+	UButton* InventoryButton = MakeStartupButton(*WidgetTree, TEXT("인벤토리 패널 테스트"), ECodexUIButtonKind::Info);
+	InventoryButton->OnClicked.AddDynamic(this, &ThisClass::HandleInventoryClicked);
+	AddStartupRow(*Stack, InventoryButton, FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
+
+	UButton* ControlsButton = MakeStartupButton(*WidgetTree, TEXT("컨트롤/슬라이더 테스트"), ECodexUIButtonKind::Info);
+	ControlsButton->OnClicked.AddDynamic(this, &ThisClass::HandleControlsClicked);
+	AddStartupRow(*Stack, ControlsButton, FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
+
 	UButton* ConfirmButton = MakeStartupButton(*WidgetTree, TEXT("확인 팝업 테스트"), ECodexUIButtonKind::Accent);
 	ConfirmButton->OnClicked.AddDynamic(this, &ThisClass::HandleConfirmPopupClicked);
 	AddStartupRow(*Stack, ConfirmButton, FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
@@ -83,6 +100,10 @@ TSharedRef<SWidget> UCodexUIKitStartupWidget::RebuildWidget()
 	RewardButton->OnClicked.AddDynamic(this, &ThisClass::HandleRewardPopupClicked);
 	AddStartupRow(*Stack, RewardButton, FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
 
+	UButton* ToastButton = MakeStartupButton(*WidgetTree, TEXT("토스트 메시지 테스트"), ECodexUIButtonKind::Primary);
+	ToastButton->OnClicked.AddDynamic(this, &ThisClass::HandleToastClicked);
+	AddStartupRow(*Stack, ToastButton, FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
+
 	UButton* CloseButton = MakeStartupButton(*WidgetTree, TEXT("런처 닫기"), ECodexUIButtonKind::Neutral);
 	CloseButton->OnClicked.AddDynamic(this, &ThisClass::HandleCloseClicked);
 	AddStartupRow(*Stack, CloseButton);
@@ -90,7 +111,7 @@ TSharedRef<SWidget> UCodexUIKitStartupWidget::RebuildWidget()
 	UCanvasPanelSlot* PanelSlot = Root->AddChildToCanvas(Panel);
 	PanelSlot->SetAnchors(FAnchors(0.0f, 0.0f));
 	PanelSlot->SetPosition(FVector2D(32.0f, 32.0f));
-	PanelSlot->SetSize(FVector2D(320.0f, 245.0f));
+	PanelSlot->SetSize(FVector2D(320.0f, 405.0f));
 
 	return Super::RebuildWidget();
 }
@@ -106,8 +127,30 @@ void UCodexUIKitStartupWidget::HandleOpenDemoClicked()
 	{
 		ActiveDemoWidget->AddToViewport(10);
 	}
+}
 
-	RemoveFromParent();
+void UCodexUIKitStartupWidget::HandleQuestBoardClicked()
+{
+	ShowStandalonePanel(
+		NSLOCTEXT("CodexUIKit", "StartupQuestBoardTitle", "퀘스트 보드 테스트"),
+		UCodexUIKitQuestBoardStandaloneWidget::StaticClass(),
+		FVector2D(1120.0f, 640.0f));
+}
+
+void UCodexUIKitStartupWidget::HandleInventoryClicked()
+{
+	ShowStandalonePanel(
+		NSLOCTEXT("CodexUIKit", "StartupInventoryTitle", "인벤토리 패널 테스트"),
+		UCodexUIKitInventoryGridWidget::StaticClass(),
+		FVector2D(340.0f, 416.0f));
+}
+
+void UCodexUIKitStartupWidget::HandleControlsClicked()
+{
+	ShowStandalonePanel(
+		NSLOCTEXT("CodexUIKit", "StartupControlsTitle", "컨트롤/슬라이더 테스트"),
+		UCodexUIKitControlsPanelWidget::StaticClass(),
+		FVector2D(930.0f, 218.0f));
 }
 
 void UCodexUIKitStartupWidget::HandleConfirmPopupClicked()
@@ -130,9 +173,34 @@ void UCodexUIKitStartupWidget::HandleRewardPopupClicked()
 		false);
 }
 
+void UCodexUIKitStartupWidget::HandleToastClicked()
+{
+	++ToastSequence;
+	ShowToast(
+		NSLOCTEXT("CodexUIKit", "StartupToastTitle", "토스트 메시지"),
+		FText::FromString(FString::Printf(TEXT("테스트 알림 %d번입니다. 잠시 후 자동으로 닫힙니다."), ToastSequence)));
+}
+
 void UCodexUIKitStartupWidget::HandleCloseClicked()
 {
 	RemoveFromParent();
+}
+
+void UCodexUIKitStartupWidget::ShowStandalonePanel(const FText& Title, TSubclassOf<UUserWidget> ContentWidgetClass, FVector2D ContentSize)
+{
+	if (ActiveStandalonePanelWidget && ActiveStandalonePanelWidget->IsInViewport())
+	{
+		ActiveStandalonePanelWidget->RemoveFromParent();
+	}
+
+	ActiveStandalonePanelWidget = CreateWidget<UCodexUIKitStandalonePanelWidget>(GetOwningPlayer(), UCodexUIKitStandalonePanelWidget::StaticClass());
+	if (!ActiveStandalonePanelWidget)
+	{
+		return;
+	}
+
+	ActiveStandalonePanelWidget->ConfigurePanel(Title, ContentWidgetClass, ContentSize);
+	ActiveStandalonePanelWidget->AddToViewport(20);
 }
 
 void UCodexUIKitStartupWidget::ShowPopup(const FText& Title, const FText& Message, const FText& Confirm, const FText& Cancel, bool bShowCancel)
@@ -150,4 +218,21 @@ void UCodexUIKitStartupWidget::ShowPopup(const FText& Title, const FText& Messag
 
 	ActivePopupWidget->ConfigurePopup(Title, Message, Confirm, Cancel, bShowCancel);
 	ActivePopupWidget->AddToViewport(30);
+}
+
+void UCodexUIKitStartupWidget::ShowToast(const FText& Title, const FText& Message)
+{
+	if (ActiveToastWidget && ActiveToastWidget->IsInViewport())
+	{
+		ActiveToastWidget->RemoveFromParent();
+	}
+
+	ActiveToastWidget = CreateWidget<UCodexUIKitToastWidget>(GetOwningPlayer(), UCodexUIKitToastWidget::StaticClass());
+	if (!ActiveToastWidget)
+	{
+		return;
+	}
+
+	ActiveToastWidget->ConfigureToast(Title, Message, 3.5f);
+	ActiveToastWidget->AddToViewport(60);
 }

@@ -11,8 +11,8 @@
 
 ## Request And Question Logs
 
-- Record user instructions in `Docs/requests.md` with the current timestamp and elapsed duration next to the timestamp. Do not include a timezone suffix in request log timestamps.
-- Record user questions and their answers separately in `Docs/questions.md` with the current timestamp and elapsed duration next to the timestamp. Do not include a timezone suffix in question log timestamps.
+- Record user instructions in `Docs/requests.md` with the request-start timestamp and elapsed duration next to the timestamp. The elapsed duration is measured from that specific request's start time, not from the beginning of the conversation/thread. Do not include a timezone suffix in request log timestamps.
+- Record user questions and their answers separately in `Docs/questions.md` with the question-start timestamp and elapsed duration next to the timestamp. The elapsed duration is measured from that specific question's start time, not from the beginning of the conversation/thread. Do not include a timezone suffix in question log timestamps.
 - Do not duplicate questions in `Docs/requests.md`.
 - Write `Docs/requests.md` and `Docs/questions.md` in Korean.
 

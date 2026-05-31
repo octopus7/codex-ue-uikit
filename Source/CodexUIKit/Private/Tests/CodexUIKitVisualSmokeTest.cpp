@@ -10,7 +10,10 @@
 #include "Tests/AutomationCommon.h"
 #include "UI/CodexUIKitDemoWidget.h"
 #include "UI/CodexUIKitPopupWidget.h"
+#include "UI/CodexUIKitQuestBoardWidget.h"
+#include "UI/CodexUIKitStandalonePanelWidget.h"
 #include "UI/CodexUIKitStartupWidget.h"
+#include "UI/CodexUIKitToastWidget.h"
 
 namespace
 {
@@ -56,13 +59,24 @@ public:
 			PopupWidget = CreateWidget<UCodexUIKitPopupWidget>(PlayerController, UCodexUIKitPopupWidget::StaticClass());
 			Test->TestNotNull(TEXT("Popup widget can be created"), PopupWidget.Get());
 
-			if (!StartupWidget.IsValid() || !DemoWidget.IsValid() || !PopupWidget.IsValid())
+			StandalonePanelWidget = CreateWidget<UCodexUIKitStandalonePanelWidget>(PlayerController, UCodexUIKitStandalonePanelWidget::StaticClass());
+			Test->TestNotNull(TEXT("Standalone panel widget can be created"), StandalonePanelWidget.Get());
+
+			ToastWidget = CreateWidget<UCodexUIKitToastWidget>(PlayerController, UCodexUIKitToastWidget::StaticClass());
+			Test->TestNotNull(TEXT("Toast widget can be created"), ToastWidget.Get());
+
+			if (!StartupWidget.IsValid() || !DemoWidget.IsValid() || !PopupWidget.IsValid() || !StandalonePanelWidget.IsValid() || !ToastWidget.IsValid())
 			{
 				return true;
 			}
 
 			DemoWidget->AddToViewport(70);
 			StartupWidget->AddToViewport(80);
+			StandalonePanelWidget->ConfigurePanel(
+				NSLOCTEXT("CodexUIKitTest", "VisualSmokeStandaloneQuestTitle", "자동화 퀘스트 보드"),
+				UCodexUIKitQuestBoardStandaloneWidget::StaticClass(),
+				FVector2D(1120.0f, 640.0f));
+			StandalonePanelWidget->AddToViewport(85);
 			PopupWidget->ConfigurePopup(
 				NSLOCTEXT("CodexUIKitTest", "VisualSmokePopupTitle", "자동화 팝업"),
 				NSLOCTEXT("CodexUIKitTest", "VisualSmokePopupMessage", "자동화 테스트용 팝업입니다."),
@@ -70,10 +84,17 @@ public:
 				NSLOCTEXT("CodexUIKitTest", "VisualSmokePopupCancel", "취소"),
 				true);
 			PopupWidget->AddToViewport(90);
+			ToastWidget->ConfigureToast(
+				NSLOCTEXT("CodexUIKitTest", "VisualSmokeToastTitle", "자동화 토스트"),
+				NSLOCTEXT("CodexUIKitTest", "VisualSmokeToastMessage", "토스트 메시지 테스트입니다."),
+				10.0f);
+			ToastWidget->AddToViewport(95);
 
 			Test->TestTrue(TEXT("Demo widget is in viewport"), DemoWidget->IsInViewport());
 			Test->TestTrue(TEXT("Startup widget is in viewport"), StartupWidget->IsInViewport());
+			Test->TestTrue(TEXT("Standalone panel widget is in viewport"), StandalonePanelWidget->IsInViewport());
 			Test->TestTrue(TEXT("Popup widget is in viewport"), PopupWidget->IsInViewport());
+			Test->TestTrue(TEXT("Toast widget is in viewport"), ToastWidget->IsInViewport());
 
 			WidgetCreateTime = FPlatformTime::Seconds();
 			return false;
@@ -93,6 +114,16 @@ public:
 			{
 				PopupWidget->RemoveFromParent();
 				Test->TestFalse(TEXT("Popup widget can be removed from viewport"), PopupWidget->IsInViewport());
+			}
+			if (ToastWidget.IsValid())
+			{
+				ToastWidget->RemoveFromParent();
+				Test->TestFalse(TEXT("Toast widget can be removed from viewport"), ToastWidget->IsInViewport());
+			}
+			if (StandalonePanelWidget.IsValid())
+			{
+				StandalonePanelWidget->RemoveFromParent();
+				Test->TestFalse(TEXT("Standalone panel widget can be removed from viewport"), StandalonePanelWidget->IsInViewport());
 			}
 			if (StartupWidget.IsValid())
 			{
@@ -122,6 +153,8 @@ private:
 	TWeakObjectPtr<UCodexUIKitStartupWidget> StartupWidget;
 	TWeakObjectPtr<UCodexUIKitDemoWidget> DemoWidget;
 	TWeakObjectPtr<UCodexUIKitPopupWidget> PopupWidget;
+	TWeakObjectPtr<UCodexUIKitStandalonePanelWidget> StandalonePanelWidget;
+	TWeakObjectPtr<UCodexUIKitToastWidget> ToastWidget;
 };
 }
 

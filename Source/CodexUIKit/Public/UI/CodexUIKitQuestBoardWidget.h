@@ -7,6 +7,7 @@
 class UScrollBox;
 class UTextBlock;
 class UVerticalBox;
+class UTexture2D;
 
 UENUM()
 enum class ECodexQuestState : uint8
@@ -56,7 +57,12 @@ public:
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 
+	bool bUseStandaloneLayout = false;
+
 private:
+	UPROPERTY()
+	TArray<TObjectPtr<UTexture2D>> LoadedSourceTextures;
+
 	UPROPERTY()
 	TObjectPtr<UScrollBox> QuestScrollBox;
 
@@ -75,6 +81,7 @@ private:
 	void RefreshQuestList();
 	void RefreshDetail();
 	void SelectNextQuest(int32 Direction);
+	UTexture2D* LoadSourceTexture(const FString& FileName);
 	static FText StateText(ECodexQuestState State);
 	static FLinearColor StateColor(ECodexQuestState State);
 
@@ -89,4 +96,13 @@ private:
 
 	UFUNCTION()
 	void HandleCycleState();
+};
+
+UCLASS()
+class CODEXUIKIT_API UCodexUIKitQuestBoardStandaloneWidget : public UCodexUIKitQuestBoardWidget
+{
+	GENERATED_BODY()
+
+public:
+	explicit UCodexUIKitQuestBoardStandaloneWidget(const FObjectInitializer& ObjectInitializer);
 };

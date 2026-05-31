@@ -3,14 +3,26 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
+#include "Components/Image.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
 #include "Components/ProgressBar.h"
 #include "Components/ScrollBox.h"
+#include "Components/ScrollBoxSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
+#include "Engine/Texture2D.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleManager.h"
 #include "UI/CodexUIStyle.h"
 
 namespace
@@ -72,6 +84,15 @@ USizeBox* QuestSized(UWidgetTree& Tree, UWidget* Content, float Width, float Hei
 	return SizeBox;
 }
 
+UCanvasPanelSlot* AddQuestCanvasChild(UCanvasPanel& Canvas, UWidget* Child, const FVector2D Position, const FVector2D Size, int32 ZOrder = 0)
+{
+	UCanvasPanelSlot* Slot = Canvas.AddChildToCanvas(Child);
+	Slot->SetPosition(Position);
+	Slot->SetSize(Size);
+	Slot->SetZOrder(ZOrder);
+	return Slot;
+}
+
 FCodexQuestDemoData MakeQuest(
 	const TCHAR* Title,
 	const TCHAR* Summary,
@@ -104,7 +125,82 @@ void UCodexUIKitQuestBoardWidget::ResetDemoQuests()
 
 TSharedRef<SWidget> UCodexUIKitQuestBoardWidget::RebuildWidget()
 {
+	LoadedSourceTextures.Reset();
 	SeedQuestsIfNeeded();
+
+	if (bUseStandaloneLayout)
+	{
+		UOverlay* RootOverlay = WidgetTree->ConstructWidget<UOverlay>();
+		WidgetTree->RootWidget = RootOverlay;
+
+		if (UTexture2D* BackgroundTexture = LoadSourceTexture(TEXT("quest-board-full.png")))
+		{
+			UImage* BackgroundImage = WidgetTree->ConstructWidget<UImage>();
+			BackgroundImage->SetBrushFromTexture(BackgroundTexture, true);
+			UOverlaySlot* BackgroundSlot = RootOverlay->AddChildToOverlay(BackgroundImage);
+			BackgroundSlot->SetHorizontalAlignment(HAlign_Fill);
+			BackgroundSlot->SetVerticalAlignment(VAlign_Fill);
+		}
+		else
+		{
+			UBorder* FallbackBackground = QuestPanel(*WidgetTree, FCodexUIColor::BgMist(), 0.0f);
+			UOverlaySlot* BackgroundSlot = RootOverlay->AddChildToOverlay(FallbackBackground);
+			BackgroundSlot->SetHorizontalAlignment(HAlign_Fill);
+			BackgroundSlot->SetVerticalAlignment(VAlign_Fill);
+		}
+
+		UCanvasPanel* Canvas = WidgetTree->ConstructWidget<UCanvasPanel>();
+		UOverlaySlot* CanvasSlot = RootOverlay->AddChildToOverlay(Canvas);
+		CanvasSlot->SetHorizontalAlignment(HAlign_Fill);
+		CanvasSlot->SetVerticalAlignment(VAlign_Fill);
+
+		UVerticalBox* TitleStack = WidgetTree->ConstructWidget<UVerticalBox>();
+		AddQuestVBox(*TitleStack, QuestText(*WidgetTree, TEXT("TUNA SWEEPER"), FCodexUIFontSize::H3, FCodexUIColor::TextInverse(), TEXT("Bold")));
+		AddQuestVBox(*TitleStack, QuestText(*WidgetTree, TEXT("QUEST BOARD"), 40.0f, FCodexUIColor::TextInverse(), TEXT("Bold")), FMargin(0.0f, 4.0f, 0.0f, 0.0f));
+		AddQuestCanvasChild(*Canvas, TitleStack, FVector2D(36.0f, 24.0f), FVector2D(270.0f, 88.0f), 2);
+
+		UBorder* CategoryPanel = QuestPanel(*WidgetTree, FLinearColor(1.0f, 0.96f, 0.82f, 0.80f), FCodexUIRadius::LG);
+		UVerticalBox* CategoryStack = WidgetTree->ConstructWidget<UVerticalBox>();
+		CategoryPanel->SetContent(CategoryStack);
+		const FString CategoryRows[] = { TEXT("전체 퀘스트"), TEXT("진행 중"), TEXT("완료 가능"), TEXT("완료"), TEXT("실패"), TEXT("반복 의뢰") };
+		for (int32 Index = 0; Index < UE_ARRAY_COUNT(CategoryRows); ++Index)
+		{
+			UBorder* Row = QuestPanel(*WidgetTree, Index == 0 ? FLinearColor(0.76f, 0.90f, 0.74f, 0.92f) : FLinearColor::Transparent, FCodexUIRadius::SM);
+			Row->SetPadding(FMargin(12.0f, 9.0f));
+			Row->SetContent(QuestText(*WidgetTree, CategoryRows[Index], FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), Index == 0 ? FName(TEXT("Bold")) : NAME_None));
+			AddQuestVBox(*CategoryStack, Row, FMargin(0.0f, 0.0f, 0.0f, 6.0f));
+		}
+		AddQuestCanvasChild(*Canvas, CategoryPanel, FVector2D(28.0f, 170.0f), FVector2D(210.0f, 392.0f), 3);
+
+		UBorder* ListPanel = QuestPanel(*WidgetTree, FLinearColor(1.0f, 0.96f, 0.82f, 0.84f), FCodexUIRadius::LG);
+		UVerticalBox* ListColumn = WidgetTree->ConstructWidget<UVerticalBox>();
+		ListPanel->SetContent(ListColumn);
+		HeaderLabel = QuestText(*WidgetTree, TEXT("퀘스트 보드"), FCodexUIFontSize::H3, FCodexUIColor::TextPrimary(), TEXT("Bold"));
+		AddQuestVBox(*ListColumn, HeaderLabel, FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
+
+		QuestScrollBox = WidgetTree->ConstructWidget<UScrollBox>();
+		QuestScrollBox->SetScrollBarVisibility(ESlateVisibility::Visible);
+		AddQuestVBox(*ListColumn, QuestSized(*WidgetTree, QuestScrollBox, 300.0f, 300.0f), FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
+
+		UHorizontalBox* NavRow = WidgetTree->ConstructWidget<UHorizontalBox>();
+		UButton* PrevButton = QuestButton(*WidgetTree, TEXT("이전"), ECodexUIButtonKind::Neutral);
+		PrevButton->OnClicked.AddDynamic(this, &ThisClass::HandlePreviousQuest);
+		UButton* NextButton = QuestButton(*WidgetTree, TEXT("다음"), ECodexUIButtonKind::Neutral);
+		NextButton->OnClicked.AddDynamic(this, &ThisClass::HandleNextQuest);
+		AddQuestHBox(*NavRow, QuestSized(*WidgetTree, PrevButton, 94.0f, 34.0f), FMargin(0.0f, 0.0f, FCodexUISpace::S2, 0.0f));
+		AddQuestHBox(*NavRow, QuestSized(*WidgetTree, NextButton, 94.0f, 34.0f));
+		AddQuestVBox(*ListColumn, NavRow);
+		AddQuestCanvasChild(*Canvas, ListPanel, FVector2D(250.0f, 170.0f), FVector2D(340.0f, 392.0f), 3);
+
+		UBorder* DetailPanel = QuestPanel(*WidgetTree, FLinearColor(1.0f, 0.96f, 0.82f, 0.86f), FCodexUIRadius::LG);
+		DetailBox = WidgetTree->ConstructWidget<UVerticalBox>();
+		DetailPanel->SetContent(DetailBox);
+		AddQuestCanvasChild(*Canvas, DetailPanel, FVector2D(610.0f, 170.0f), FVector2D(480.0f, 392.0f), 3);
+
+		RefreshQuestList();
+		RefreshDetail();
+		return Super::RebuildWidget();
+	}
 
 	UBorder* RootPanel = QuestPanel(*WidgetTree);
 	WidgetTree->RootWidget = RootPanel;
@@ -202,7 +298,10 @@ void UCodexUIKitQuestBoardWidget::RefreshQuestList()
 		AddQuestVBox(*RowStack, QuestText(*WidgetTree, Quest.Objective, FCodexUIFontSize::Caption, FCodexUIColor::TextSecondary()), FMargin(0.0f, 4.0f, 0.0f, 0.0f));
 		AddQuestVBox(*RowStack, QuestText(*WidgetTree, FString::Printf(TEXT("%d / %d"), Quest.Current, Quest.Required), FCodexUIFontSize::Caption, FCodexUIColor::TextMuted()), FMargin(0.0f, 4.0f, 0.0f, 0.0f), HAlign_Right);
 		Row->SetContent(RowStack);
-		QuestScrollBox->AddChild(Row);
+		if (UScrollBoxSlot* RowSlot = Cast<UScrollBoxSlot>(QuestScrollBox->AddChild(Row)))
+		{
+			RowSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
+		}
 	}
 }
 
@@ -221,8 +320,13 @@ void UCodexUIKitQuestBoardWidget::RefreshDetail()
 	AddQuestHBox(*HeaderRow, QuestText(*WidgetTree, StateText(Quest.State).ToString(), FCodexUIFontSize::Badge, StateColor(Quest.State), TEXT("Bold")));
 	AddQuestVBox(*DetailBox, HeaderRow, FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S4));
 
+	const float DetailTextWidth = bUseStandaloneLayout ? 420.0f : 250.0f;
+	const float ProgressWidth = bUseStandaloneLayout ? 420.0f : 250.0f;
+	const float ButtonWidth = bUseStandaloneLayout ? 148.0f : 112.0f;
+	const float ButtonHeight = bUseStandaloneLayout ? 40.0f : 36.0f;
+
 	UTextBlock* Summary = QuestText(*WidgetTree, Quest.Summary, FCodexUIFontSize::Body, FCodexUIColor::TextSecondary());
-	Summary->SetWrapTextAt(250.0f);
+	Summary->SetWrapTextAt(DetailTextWidth);
 	AddQuestVBox(*DetailBox, Summary, FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S5));
 
 	AddQuestVBox(*DetailBox, QuestText(*WidgetTree, TEXT("목표"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), TEXT("Bold")));
@@ -231,7 +335,7 @@ void UCodexUIKitQuestBoardWidget::RefreshDetail()
 	UProgressBar* Progress = WidgetTree->ConstructWidget<UProgressBar>();
 	Progress->SetWidgetStyle(FCodexUIStyle::ProgressBarStyle(StateColor(Quest.State)));
 	Progress->SetPercent(Quest.Required > 0 ? static_cast<float>(Quest.Current) / static_cast<float>(Quest.Required) : 0.0f);
-	AddQuestVBox(*DetailBox, QuestSized(*WidgetTree, Progress, 250.0f, 12.0f), FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S4));
+	AddQuestVBox(*DetailBox, QuestSized(*WidgetTree, Progress, ProgressWidth, 12.0f), FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S4));
 
 	AddQuestVBox(*DetailBox, QuestText(*WidgetTree, FString::Printf(TEXT("보상: 코인 %d"), Quest.RewardCoins), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), TEXT("Bold")), FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S5));
 
@@ -240,8 +344,8 @@ void UCodexUIKitQuestBoardWidget::RefreshDetail()
 	AdvanceButton->OnClicked.AddDynamic(this, &ThisClass::HandleAdvanceObjective);
 	UButton* StateButton = QuestButton(*WidgetTree, TEXT("상태 순환"), ECodexUIButtonKind::Info);
 	StateButton->OnClicked.AddDynamic(this, &ThisClass::HandleCycleState);
-	AddQuestHBox(*ButtonRow, QuestSized(*WidgetTree, AdvanceButton, 112.0f, 36.0f), FMargin(0.0f, 0.0f, FCodexUISpace::S2, 0.0f));
-	AddQuestHBox(*ButtonRow, QuestSized(*WidgetTree, StateButton, 112.0f, 36.0f));
+	AddQuestHBox(*ButtonRow, QuestSized(*WidgetTree, AdvanceButton, ButtonWidth, ButtonHeight), FMargin(0.0f, 0.0f, FCodexUISpace::S2, 0.0f));
+	AddQuestHBox(*ButtonRow, QuestSized(*WidgetTree, StateButton, ButtonWidth, ButtonHeight));
 	AddQuestVBox(*DetailBox, ButtonRow);
 }
 
@@ -354,4 +458,48 @@ void UCodexUIKitQuestBoardWidget::HandleCycleState()
 
 	RefreshQuestList();
 	RefreshDetail();
+}
+
+UTexture2D* UCodexUIKitQuestBoardWidget::LoadSourceTexture(const FString& FileName)
+{
+	const FString FullPath = FPaths::ProjectContentDir() / TEXT("UI/SourceArt") / FileName;
+	TArray<uint8> CompressedData;
+	if (!FFileHelper::LoadFileToArray(CompressedData, *FullPath))
+	{
+		return nullptr;
+	}
+
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(TEXT("ImageWrapper"));
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+	if (!ImageWrapper.IsValid() || !ImageWrapper->SetCompressed(CompressedData.GetData(), CompressedData.Num()))
+	{
+		return nullptr;
+	}
+
+	TArray64<uint8> RawData;
+	if (!ImageWrapper->GetRaw(ERGBFormat::BGRA, 8, RawData))
+	{
+		return nullptr;
+	}
+
+	UTexture2D* Texture = UTexture2D::CreateTransient(ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), PF_B8G8R8A8);
+	if (!Texture || !Texture->GetPlatformData() || Texture->GetPlatformData()->Mips.Num() == 0)
+	{
+		return nullptr;
+	}
+
+	void* TextureData = Texture->GetPlatformData()->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
+	FMemory::Memcpy(TextureData, RawData.GetData(), RawData.Num());
+	Texture->GetPlatformData()->Mips[0].BulkData.Unlock();
+	Texture->SRGB = true;
+	Texture->UpdateResource();
+
+	LoadedSourceTextures.Add(Texture);
+	return Texture;
+}
+
+UCodexUIKitQuestBoardStandaloneWidget::UCodexUIKitQuestBoardStandaloneWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bUseStandaloneLayout = true;
 }
