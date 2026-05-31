@@ -3,15 +3,9 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
-#include "Components/HorizontalBox.h"
-#include "Components/HorizontalBoxSlot.h"
-#include "Components/ProgressBar.h"
 #include "Components/ScrollBox.h"
-#include "Components/SizeBox.h"
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
-#include "Components/VerticalBox.h"
-#include "Components/VerticalBoxSlot.h"
 #include "UI/CodexUIStyle.h"
 
 namespace
@@ -33,76 +27,6 @@ UBorder* ControlPanel(UWidgetTree& Tree, const FLinearColor& Fill = FCodexUIColo
 	return Border;
 }
 
-UButton* ControlButton(UWidgetTree& Tree, const FString& Label, ECodexUIButtonKind Kind)
-{
-	UButton* Button = Tree.ConstructWidget<UButton>();
-	Button->SetStyle(FCodexUIStyle::ButtonStyle(Kind));
-	UTextBlock* LabelText = ControlText(
-		Tree,
-		Label,
-		FCodexUIFontSize::Caption,
-		Kind == ECodexUIButtonKind::Neutral ? FCodexUIColor::TextPrimary() : FCodexUIColor::TextInverse(),
-		TEXT("Bold"));
-	LabelText->SetJustification(ETextJustify::Center);
-	Button->SetContent(LabelText);
-	return Button;
-}
-
-USizeBox* ControlSized(UWidgetTree& Tree, UWidget* Content, float Width, float Height)
-{
-	USizeBox* SizeBox = Tree.ConstructWidget<USizeBox>();
-	SizeBox->SetWidthOverride(Width);
-	SizeBox->SetHeightOverride(Height);
-	SizeBox->AddChild(Content);
-	return SizeBox;
-}
-
-void AddControlVBox(UVerticalBox& Box, UWidget* Child, const FMargin Padding = FMargin(0.0f), EHorizontalAlignment Align = HAlign_Fill)
-{
-	UVerticalBoxSlot* Slot = Box.AddChildToVerticalBox(Child);
-	Slot->SetPadding(Padding);
-	Slot->SetHorizontalAlignment(Align);
-}
-
-void AddControlHBox(UHorizontalBox& Box, UWidget* Child, const FMargin Padding = FMargin(0.0f), float FillWidth = 0.0f)
-{
-	UHorizontalBoxSlot* Slot = Box.AddChildToHorizontalBox(Child);
-	Slot->SetPadding(Padding);
-	FSlateChildSize Size(FillWidth > 0.0f ? ESlateSizeRule::Fill : ESlateSizeRule::Automatic);
-	Size.Value = FillWidth > 0.0f ? FillWidth : 1.0f;
-	Slot->SetSize(Size);
-}
-
-USlider* MakeSlider(UWidgetTree& Tree, float Value)
-{
-	USlider* Slider = Tree.ConstructWidget<USlider>();
-	Slider->SetValue(Value);
-	Slider->SetStepSize(0.01f);
-	Slider->SetSliderBarColor(FCodexUIColor::InfoDark());
-	Slider->SetSliderHandleColor(FCodexUIColor::Primary());
-	return Slider;
-}
-
-UWidget* MakeSliderRow(
-	UWidgetTree& Tree,
-	const FString& Label,
-	float Value,
-	TObjectPtr<UTextBlock>& OutValueLabel,
-	const FScriptDelegate& ChangeDelegate)
-{
-	UHorizontalBox* Row = Tree.ConstructWidget<UHorizontalBox>();
-	AddControlHBox(*Row, ControlText(Tree, Label, FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), TEXT("Bold")), FMargin(0.0f), 0.25f);
-
-	USlider* Slider = MakeSlider(Tree, Value);
-	Slider->OnValueChanged.Add(ChangeDelegate);
-	AddControlHBox(*Row, ControlSized(Tree, Slider, 280.0f, 26.0f), FMargin(FCodexUISpace::S2, 0.0f), 1.0f);
-
-	UTextBlock* ValueLabel = ControlText(Tree, TEXT("0"), FCodexUIFontSize::Caption, FCodexUIColor::TextSecondary(), TEXT("Bold"));
-	ValueLabel->SetJustification(ETextJustify::Right);
-	OutValueLabel = ValueLabel;
-	AddControlHBox(*Row, ControlSized(Tree, ValueLabel, 46.0f, 22.0f));
-	return Row;
-}
 }
 
 void UCodexUIKitControlsPanelWidget::ResetDemoControls()
@@ -113,65 +37,77 @@ void UCodexUIKitControlsPanelWidget::ResetDemoControls()
 	Notices.Reset();
 	NoticeSequence = 0;
 	SeedNoticesIfNeeded();
+	if (BgmSlider)
+	{
+		BgmSlider->SetValue(BgmValue);
+	}
+	if (SfxSlider)
+	{
+		SfxSlider->SetValue(SfxValue);
+	}
+	if (ZoomSlider)
+	{
+		ZoomSlider->SetValue(ZoomValue);
+	}
 	RefreshSliderLabels();
 	RefreshNotices();
 }
 
-TSharedRef<SWidget> UCodexUIKitControlsPanelWidget::RebuildWidget()
+void UCodexUIKitControlsPanelWidget::NativeOnInitialized()
 {
+	Super::NativeOnInitialized();
+
+	if (BgmSlider)
+	{
+		BgmSlider->OnValueChanged.AddDynamic(this, &ThisClass::HandleBgmChanged);
+	}
+	if (SfxSlider)
+	{
+		SfxSlider->OnValueChanged.AddDynamic(this, &ThisClass::HandleSfxChanged);
+	}
+	if (ZoomSlider)
+	{
+		ZoomSlider->OnValueChanged.AddDynamic(this, &ThisClass::HandleZoomChanged);
+	}
+	if (ResetButton)
+	{
+		ResetButton->OnClicked.AddDynamic(this, &ThisClass::HandleResetControls);
+	}
+	if (AddNoticeButton)
+	{
+		AddNoticeButton->OnClicked.AddDynamic(this, &ThisClass::HandleAddNotice);
+	}
+	if (ScrollTopButton)
+	{
+		ScrollTopButton->OnClicked.AddDynamic(this, &ThisClass::HandleScrollNoticeTop);
+	}
+	if (ScrollBottomButton)
+	{
+		ScrollBottomButton->OnClicked.AddDynamic(this, &ThisClass::HandleScrollNoticeBottom);
+	}
+}
+
+void UCodexUIKitControlsPanelWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	FCodexUIStyle::ApplyFontToTextBlocks(GetRootWidget());
+
 	SeedNoticesIfNeeded();
-
-	UBorder* RootPanel = ControlPanel(*WidgetTree);
-	WidgetTree->RootWidget = RootPanel;
-
-	UHorizontalBox* RootRow = WidgetTree->ConstructWidget<UHorizontalBox>();
-	RootPanel->SetContent(RootRow);
-
-	UVerticalBox* SliderColumn = WidgetTree->ConstructWidget<UVerticalBox>();
-	AddControlVBox(*SliderColumn, ControlText(*WidgetTree, TEXT("컨트롤 테스트"), FCodexUIFontSize::H3, FCodexUIColor::TextPrimary(), TEXT("Bold")), FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
-
-	FScriptDelegate BgmDelegate;
-	BgmDelegate.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UCodexUIKitControlsPanelWidget, HandleBgmChanged));
-	AddControlVBox(*SliderColumn, MakeSliderRow(*WidgetTree, TEXT("BGM"), BgmValue, BgmValueLabel, BgmDelegate), FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S1));
-
-	FScriptDelegate SfxDelegate;
-	SfxDelegate.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UCodexUIKitControlsPanelWidget, HandleSfxChanged));
-	AddControlVBox(*SliderColumn, MakeSliderRow(*WidgetTree, TEXT("효과음"), SfxValue, SfxValueLabel, SfxDelegate), FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S1));
-
-	FScriptDelegate ZoomDelegate;
-	ZoomDelegate.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UCodexUIKitControlsPanelWidget, HandleZoomChanged));
-	AddControlVBox(*SliderColumn, MakeSliderRow(*WidgetTree, TEXT("줌"), ZoomValue, ZoomValueLabel, ZoomDelegate), FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
-
-	UHorizontalBox* ButtonRow = WidgetTree->ConstructWidget<UHorizontalBox>();
-	UButton* ResetButton = ControlButton(*WidgetTree, TEXT("초기화"), ECodexUIButtonKind::Neutral);
-	ResetButton->OnClicked.AddDynamic(this, &ThisClass::HandleResetControls);
-	UButton* AddNoticeButton = ControlButton(*WidgetTree, TEXT("알림 추가"), ECodexUIButtonKind::Primary);
-	AddNoticeButton->OnClicked.AddDynamic(this, &ThisClass::HandleAddNotice);
-	AddControlHBox(*ButtonRow, ControlSized(*WidgetTree, ResetButton, 82.0f, 32.0f), FMargin(0.0f, 0.0f, FCodexUISpace::S2, 0.0f));
-	AddControlHBox(*ButtonRow, ControlSized(*WidgetTree, AddNoticeButton, 96.0f, 32.0f));
-	AddControlVBox(*SliderColumn, ButtonRow);
-	AddControlHBox(*RootRow, SliderColumn, FMargin(0.0f, 0.0f, FCodexUISpace::S5, 0.0f), 1.0f);
-
-	UVerticalBox* NoticeColumn = WidgetTree->ConstructWidget<UVerticalBox>();
-	UHorizontalBox* NoticeHeaderRow = WidgetTree->ConstructWidget<UHorizontalBox>();
-	NoticeHeaderLabel = ControlText(*WidgetTree, TEXT("알림 로그"), FCodexUIFontSize::H3, FCodexUIColor::TextPrimary(), TEXT("Bold"));
-	AddControlHBox(*NoticeHeaderRow, NoticeHeaderLabel, FMargin(0.0f), 1.0f);
-	UButton* TopButton = ControlButton(*WidgetTree, TEXT("위"), ECodexUIButtonKind::Neutral);
-	TopButton->OnClicked.AddDynamic(this, &ThisClass::HandleScrollNoticeTop);
-	UButton* BottomButton = ControlButton(*WidgetTree, TEXT("아래"), ECodexUIButtonKind::Neutral);
-	BottomButton->OnClicked.AddDynamic(this, &ThisClass::HandleScrollNoticeBottom);
-	AddControlHBox(*NoticeHeaderRow, ControlSized(*WidgetTree, TopButton, 44.0f, 30.0f), FMargin(0.0f, 0.0f, FCodexUISpace::S1, 0.0f));
-	AddControlHBox(*NoticeHeaderRow, ControlSized(*WidgetTree, BottomButton, 50.0f, 30.0f));
-	AddControlVBox(*NoticeColumn, NoticeHeaderRow, FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
-
-	NoticeScrollBox = WidgetTree->ConstructWidget<UScrollBox>();
-	NoticeScrollBox->SetScrollBarVisibility(ESlateVisibility::Visible);
-	AddControlVBox(*NoticeColumn, ControlSized(*WidgetTree, NoticeScrollBox, 344.0f, 126.0f));
-	AddControlHBox(*RootRow, NoticeColumn, FMargin(0.0f), 0.9f);
+	if (BgmSlider)
+	{
+		BgmSlider->SetValue(BgmValue);
+	}
+	if (SfxSlider)
+	{
+		SfxSlider->SetValue(SfxValue);
+	}
+	if (ZoomSlider)
+	{
+		ZoomSlider->SetValue(ZoomValue);
+	}
 
 	RefreshSliderLabels();
 	RefreshNotices();
-	return Super::RebuildWidget();
 }
 
 void UCodexUIKitControlsPanelWidget::SeedNoticesIfNeeded()

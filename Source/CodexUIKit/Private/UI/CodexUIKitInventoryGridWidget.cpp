@@ -1,7 +1,6 @@
 #include "UI/CodexUIKitInventoryGridWidget.h"
 
 #include "Blueprint/WidgetTree.h"
-#include "Components/Border.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/ScrollBox.h"
@@ -24,29 +23,6 @@ UTextBlock* InventoryText(UWidgetTree& Tree, const FString& Text, float Size, co
 	TextBlock->SetFont(FCodexUIStyle::Font(Size, Typeface));
 	TextBlock->SetColorAndOpacity(FSlateColor(Color));
 	return TextBlock;
-}
-
-UBorder* InventoryPanel(UWidgetTree& Tree, const FLinearColor& Fill = FCodexUIColor::SurfaceBase(), float Radius = FCodexUIRadius::LG)
-{
-	UBorder* Border = Tree.ConstructWidget<UBorder>();
-	Border->SetPadding(FMargin(FCodexUISpace::S4));
-	Border->SetBrush(FCodexUIStyle::RoundedBrush(Fill, Radius, FCodexUIColor::BorderSoft(), 1.0f));
-	return Border;
-}
-
-UButton* InventoryButton(UWidgetTree& Tree, const FString& Label, ECodexUIButtonKind Kind)
-{
-	UButton* Button = Tree.ConstructWidget<UButton>();
-	Button->SetStyle(FCodexUIStyle::ButtonStyle(Kind));
-	UTextBlock* LabelText = InventoryText(
-		Tree,
-		Label,
-		FCodexUIFontSize::Caption,
-		Kind == ECodexUIButtonKind::Neutral ? FCodexUIColor::TextPrimary() : FCodexUIColor::TextInverse(),
-		TEXT("Bold"));
-	LabelText->SetJustification(ETextJustify::Center);
-	Button->SetContent(LabelText);
-	return Button;
 }
 
 USizeBox* InventorySized(UWidgetTree& Tree, UWidget* Content, float Width, float Height)
@@ -133,64 +109,53 @@ void UCodexUIKitInventoryGridWidget::SelectItemByIndex(int32 ItemIndex)
 	RefreshDetail();
 }
 
-TSharedRef<SWidget> UCodexUIKitInventoryGridWidget::RebuildWidget()
+void UCodexUIKitInventoryGridWidget::NativeOnInitialized()
 {
+	Super::NativeOnInitialized();
+
+	if (AllFilterButton)
+	{
+		AllFilterButton->OnClicked.AddDynamic(this, &ThisClass::HandleFilterAll);
+	}
+	if (MaterialFilterButton)
+	{
+		MaterialFilterButton->OnClicked.AddDynamic(this, &ThisClass::HandleFilterMaterial);
+	}
+	if (ConsumableFilterButton)
+	{
+		ConsumableFilterButton->OnClicked.AddDynamic(this, &ThisClass::HandleFilterConsumable);
+	}
+	if (EquipmentFilterButton)
+	{
+		EquipmentFilterButton->OnClicked.AddDynamic(this, &ThisClass::HandleFilterEquipment);
+	}
+	if (PreviousItemButton)
+	{
+		PreviousItemButton->OnClicked.AddDynamic(this, &ThisClass::HandlePreviousItem);
+	}
+	if (NextItemButton)
+	{
+		NextItemButton->OnClicked.AddDynamic(this, &ThisClass::HandleNextItem);
+	}
+	if (UseItemButton)
+	{
+		UseItemButton->OnClicked.AddDynamic(this, &ThisClass::HandleUseSelectedItem);
+	}
+	if (LockItemButton)
+	{
+		LockItemButton->OnClicked.AddDynamic(this, &ThisClass::HandleToggleLockSelectedItem);
+	}
+}
+
+void UCodexUIKitInventoryGridWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	FCodexUIStyle::ApplyFontToTextBlocks(GetRootWidget());
+
 	SeedItemsIfNeeded();
 	EnsureSelectionVisible();
-
-	UBorder* RootPanel = InventoryPanel(*WidgetTree);
-	WidgetTree->RootWidget = RootPanel;
-
-	UVerticalBox* RootStack = WidgetTree->ConstructWidget<UVerticalBox>();
-	RootPanel->SetContent(RootStack);
-
-	UHorizontalBox* HeaderRow = WidgetTree->ConstructWidget<UHorizontalBox>();
-	HeaderLabel = InventoryText(*WidgetTree, TEXT("인벤토리"), FCodexUIFontSize::H3, FCodexUIColor::TextPrimary(), TEXT("Bold"));
-	AddInventoryHBox(*HeaderRow, HeaderLabel, FMargin(0.0f), 1.0f);
-	FilterLabel = InventoryText(*WidgetTree, TEXT("전체"), FCodexUIFontSize::Caption, FCodexUIColor::TextSecondary(), TEXT("Bold"));
-	AddInventoryHBox(*HeaderRow, FilterLabel);
-	AddInventoryVBox(*RootStack, HeaderRow, FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
-
-	UHorizontalBox* FilterRow = WidgetTree->ConstructWidget<UHorizontalBox>();
-	UButton* AllButton = InventoryButton(*WidgetTree, TEXT("전체"), ECodexUIButtonKind::Primary);
-	AllButton->OnClicked.AddDynamic(this, &ThisClass::HandleFilterAll);
-	UButton* MaterialButton = InventoryButton(*WidgetTree, TEXT("재료"), ECodexUIButtonKind::Neutral);
-	MaterialButton->OnClicked.AddDynamic(this, &ThisClass::HandleFilterMaterial);
-	UButton* ConsumableButton = InventoryButton(*WidgetTree, TEXT("소모품"), ECodexUIButtonKind::Neutral);
-	ConsumableButton->OnClicked.AddDynamic(this, &ThisClass::HandleFilterConsumable);
-	UButton* EquipmentButton = InventoryButton(*WidgetTree, TEXT("장비"), ECodexUIButtonKind::Neutral);
-	EquipmentButton->OnClicked.AddDynamic(this, &ThisClass::HandleFilterEquipment);
-	AddInventoryHBox(*FilterRow, InventorySized(*WidgetTree, AllButton, 58.0f, 30.0f), FMargin(0.0f, 0.0f, FCodexUISpace::S1, 0.0f));
-	AddInventoryHBox(*FilterRow, InventorySized(*WidgetTree, MaterialButton, 58.0f, 30.0f), FMargin(0.0f, 0.0f, FCodexUISpace::S1, 0.0f));
-	AddInventoryHBox(*FilterRow, InventorySized(*WidgetTree, ConsumableButton, 68.0f, 30.0f), FMargin(0.0f, 0.0f, FCodexUISpace::S1, 0.0f));
-	AddInventoryHBox(*FilterRow, InventorySized(*WidgetTree, EquipmentButton, 58.0f, 30.0f));
-	AddInventoryVBox(*RootStack, FilterRow, FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
-
-	ItemScrollBox = WidgetTree->ConstructWidget<UScrollBox>();
-	ItemScrollBox->SetScrollBarVisibility(ESlateVisibility::Visible);
-	AddInventoryVBox(*RootStack, InventorySized(*WidgetTree, ItemScrollBox, 304.0f, 186.0f), FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S3));
-
-	DetailBox = WidgetTree->ConstructWidget<UVerticalBox>();
-	AddInventoryVBox(*RootStack, InventorySized(*WidgetTree, DetailBox, 304.0f, 78.0f), FMargin(0.0f, 0.0f, 0.0f, FCodexUISpace::S2));
-
-	UHorizontalBox* ButtonRow = WidgetTree->ConstructWidget<UHorizontalBox>();
-	UButton* PrevButton = InventoryButton(*WidgetTree, TEXT("이전"), ECodexUIButtonKind::Neutral);
-	PrevButton->OnClicked.AddDynamic(this, &ThisClass::HandlePreviousItem);
-	UButton* NextButton = InventoryButton(*WidgetTree, TEXT("다음"), ECodexUIButtonKind::Neutral);
-	NextButton->OnClicked.AddDynamic(this, &ThisClass::HandleNextItem);
-	UButton* UseButton = InventoryButton(*WidgetTree, TEXT("사용"), ECodexUIButtonKind::Primary);
-	UseButton->OnClicked.AddDynamic(this, &ThisClass::HandleUseSelectedItem);
-	UButton* LockButton = InventoryButton(*WidgetTree, TEXT("잠금"), ECodexUIButtonKind::Info);
-	LockButton->OnClicked.AddDynamic(this, &ThisClass::HandleToggleLockSelectedItem);
-	AddInventoryHBox(*ButtonRow, InventorySized(*WidgetTree, PrevButton, 58.0f, 32.0f), FMargin(0.0f, 0.0f, FCodexUISpace::S1, 0.0f));
-	AddInventoryHBox(*ButtonRow, InventorySized(*WidgetTree, NextButton, 58.0f, 32.0f), FMargin(0.0f, 0.0f, FCodexUISpace::S1, 0.0f));
-	AddInventoryHBox(*ButtonRow, InventorySized(*WidgetTree, UseButton, 74.0f, 32.0f), FMargin(0.0f, 0.0f, FCodexUISpace::S1, 0.0f));
-	AddInventoryHBox(*ButtonRow, InventorySized(*WidgetTree, LockButton, 74.0f, 32.0f));
-	AddInventoryVBox(*RootStack, ButtonRow);
-
 	RefreshInventory();
 	RefreshDetail();
-	return Super::RebuildWidget();
 }
 
 void UCodexUIKitInventoryGridWidget::SeedItemsIfNeeded()

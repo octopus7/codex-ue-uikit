@@ -8,6 +8,7 @@
 class UScrollBox;
 class UTextBlock;
 class UVerticalBox;
+class UButton;
 
 UENUM()
 enum class ECodexInventoryFilter : uint8
@@ -77,20 +78,45 @@ public:
 	void SelectItemByIndex(int32 ItemIndex);
 
 protected:
-	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void NativeOnInitialized() override;
+	virtual void NativeConstruct() override;
 
 private:
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UScrollBox> ItemScrollBox;
 
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> DetailBox;
 
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> HeaderLabel;
 
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> FilterLabel;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> AllFilterButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> MaterialFilterButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> ConsumableFilterButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> EquipmentFilterButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> PreviousItemButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> NextItemButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> UseItemButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> LockItemButton;
 
 	UPROPERTY()
 	TArray<FCodexInventoryDemoItem> Items;

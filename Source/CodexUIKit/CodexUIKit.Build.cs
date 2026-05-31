@@ -26,7 +26,14 @@ public class CodexUIKit : ModuleRules
 
 		if (Target.bBuildEditor)
 		{
-			PrivateDependencyModuleNames.Add("FunctionalTesting");
+			PrivateDependencyModuleNames.AddRange(new string[]
+			{
+				"AssetTools",
+				"FunctionalTesting",
+				"KismetCompiler",
+				"UMGEditor",
+				"UnrealEd"
+			});
 		}
 	}
 }

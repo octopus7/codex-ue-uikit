@@ -6,6 +6,7 @@
 #include "CodexUIKitToastWidget.generated.h"
 
 class UTextBlock;
+class UButton;
 
 UCLASS()
 class CODEXUIKIT_API UCodexUIKitToastWidget : public UUserWidget
@@ -17,7 +18,7 @@ public:
 	void ConfigureToast(FText InTitle, FText InMessage, float InDuration = 3.0f);
 
 protected:
-	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 
@@ -28,11 +29,14 @@ private:
 	UPROPERTY()
 	FText ToastMessage;
 
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> TitleTextBlock;
 
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> MessageTextBlock;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> CloseButton;
 
 	FTimerHandle AutoDismissTimerHandle;
 	float Duration = 3.0f;

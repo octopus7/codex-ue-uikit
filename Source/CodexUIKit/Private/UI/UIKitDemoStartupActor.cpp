@@ -4,10 +4,29 @@
 #include "GameFramework/PlayerController.h"
 #include "UI/CodexUIKitStartupWidget.h"
 
+namespace
+{
+TSubclassOf<UUserWidget> ResolveStartupWidgetClass(TSubclassOf<UUserWidget> WidgetClass)
+{
+	if (WidgetClass)
+	{
+		return WidgetClass;
+	}
+
+	if (UClass* WidgetBlueprintClass = LoadClass<UCodexUIKitStartupWidget>(
+		nullptr,
+		TEXT("/Game/UI/WBP/WBP_CodexUIKitStartup.WBP_CodexUIKitStartup_C")))
+	{
+		return WidgetBlueprintClass;
+	}
+
+	return UCodexUIKitStartupWidget::StaticClass();
+}
+}
+
 AUIKitDemoStartupActor::AUIKitDemoStartupActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
-	StartupWidgetClass = UCodexUIKitStartupWidget::StaticClass();
 }
 
 UUserWidget* AUIKitDemoStartupActor::CreateStartupWidgetForPlayer(APlayerController* PlayerController, TSubclassOf<UUserWidget> WidgetClass, int32 ZOrder)
@@ -17,11 +36,7 @@ UUserWidget* AUIKitDemoStartupActor::CreateStartupWidgetForPlayer(APlayerControl
 		return nullptr;
 	}
 
-	TSubclassOf<UUserWidget> ResolvedClass = WidgetClass;
-	if (!ResolvedClass)
-	{
-		ResolvedClass = UCodexUIKitStartupWidget::StaticClass();
-	}
+	const TSubclassOf<UUserWidget> ResolvedClass = ResolveStartupWidgetClass(WidgetClass);
 	UUserWidget* Widget = CreateWidget<UUserWidget>(PlayerController, ResolvedClass);
 	if (!Widget)
 	{

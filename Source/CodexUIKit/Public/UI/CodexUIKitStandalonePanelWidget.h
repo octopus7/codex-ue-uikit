@@ -5,6 +5,8 @@
 #include "CodexUIKitStandalonePanelWidget.generated.h"
 
 class USizeBox;
+class UButton;
+class UTextBlock;
 
 UCLASS()
 class CODEXUIKIT_API UCodexUIKitStandalonePanelWidget : public UUserWidget
@@ -16,9 +18,19 @@ public:
 	void ConfigurePanel(FText InTitle, TSubclassOf<UUserWidget> InContentWidgetClass, FVector2D InContentSize);
 
 protected:
-	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void NativeOnInitialized() override;
+	virtual void NativeConstruct() override;
 
 private:
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> TitleTextBlock;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> CloseButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<USizeBox> ContentHost;
+
 	UPROPERTY()
 	FText PanelTitle;
 
@@ -31,6 +43,7 @@ private:
 	FVector2D ContentSize = FVector2D(640.0f, 420.0f);
 
 	void RebuildContent();
+	void SyncPanel();
 
 	UFUNCTION()
 	void HandleCloseClicked();

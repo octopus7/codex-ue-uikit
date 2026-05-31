@@ -95,5 +95,6 @@ struct FCodexUIStyle
 		float OutlineWidth = 0.0f);
 	static FButtonStyle ButtonStyle(ECodexUIButtonKind Kind);
 	static FSlateFontInfo Font(float Size, FName Typeface = NAME_None);
+	static void ApplyFontToTextBlocks(class UWidget* RootWidget);
 	static FProgressBarStyle ProgressBarStyle(const FLinearColor& Fill);
 };

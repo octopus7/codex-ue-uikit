@@ -4,10 +4,10 @@
 #include "Blueprint/UserWidget.h"
 #include "CodexUIKitStartupWidget.generated.h"
 
-class UCodexUIKitDemoWidget;
 class UCodexUIKitPopupWidget;
 class UCodexUIKitStandalonePanelWidget;
 class UCodexUIKitToastWidget;
+class UButton;
 
 UCLASS()
 class CODEXUIKIT_API UCodexUIKitStartupWidget : public UUserWidget
@@ -15,11 +15,29 @@ class CODEXUIKIT_API UCodexUIKitStartupWidget : public UUserWidget
 	GENERATED_BODY()
 
 protected:
-	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void NativeOnInitialized() override;
 
 private:
-	UPROPERTY()
-	TObjectPtr<UCodexUIKitDemoWidget> ActiveDemoWidget;
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> QuestBoardButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> InventoryButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> ControlsButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> ConfirmPopupButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> RewardPopupButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> ToastButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> CloseButton;
 
 	UPROPERTY()
 	TObjectPtr<UCodexUIKitPopupWidget> ActivePopupWidget;
@@ -31,9 +49,6 @@ private:
 	TObjectPtr<UCodexUIKitToastWidget> ActiveToastWidget;
 
 	int32 ToastSequence = 0;
-
-	UFUNCTION()
-	void HandleOpenDemoClicked();
 
 	UFUNCTION()
 	void HandleQuestBoardClicked();

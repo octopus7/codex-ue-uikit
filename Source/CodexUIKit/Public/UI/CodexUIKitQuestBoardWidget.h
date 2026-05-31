@@ -7,11 +7,21 @@
 class UScrollBox;
 class UTextBlock;
 class UVerticalBox;
-class UTexture2D;
+class UButton;
 
 UENUM()
 enum class ECodexQuestState : uint8
 {
+	InProgress,
+	ReadyToComplete,
+	Completed,
+	Failed
+};
+
+UENUM()
+enum class ECodexQuestFilter : uint8
+{
+	All,
 	InProgress,
 	ReadyToComplete,
 	Completed,
@@ -55,33 +65,60 @@ public:
 	void ResetDemoQuests();
 
 protected:
-	virtual TSharedRef<SWidget> RebuildWidget() override;
-
-	bool bUseStandaloneLayout = false;
+	virtual void NativeOnInitialized() override;
+	virtual void NativeConstruct() override;
 
 private:
-	UPROPERTY()
-	TArray<TObjectPtr<UTexture2D>> LoadedSourceTextures;
-
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UScrollBox> QuestScrollBox;
 
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UVerticalBox> DetailBox;
 
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> HeaderLabel;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> PreviousButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> NextButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> AdvanceObjectiveButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> CycleStateButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> AllFilterButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> InProgressFilterButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> ReadyFilterButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> CompletedFilterButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> FailedFilterButton;
 
 	UPROPERTY()
 	TArray<FCodexQuestDemoData> Quests;
 
 	int32 SelectedQuestIndex = 0;
+	ECodexQuestFilter ActiveFilter = ECodexQuestFilter::All;
 
 	void SeedQuestsIfNeeded();
 	void RefreshQuestList();
 	void RefreshDetail();
+	void RefreshFilterButtonStyles();
 	void SelectNextQuest(int32 Direction);
-	UTexture2D* LoadSourceTexture(const FString& FileName);
+	void SetFilter(ECodexQuestFilter NewFilter);
+	bool MatchesActiveFilter(const FCodexQuestDemoData& Quest) const;
+	bool EnsureSelectedQuestMatchesFilter();
 	static FText StateText(ECodexQuestState State);
 	static FLinearColor StateColor(ECodexQuestState State);
 
@@ -96,13 +133,19 @@ private:
 
 	UFUNCTION()
 	void HandleCycleState();
-};
 
-UCLASS()
-class CODEXUIKIT_API UCodexUIKitQuestBoardStandaloneWidget : public UCodexUIKitQuestBoardWidget
-{
-	GENERATED_BODY()
+	UFUNCTION()
+	void HandleAllFilter();
 
-public:
-	explicit UCodexUIKitQuestBoardStandaloneWidget(const FObjectInitializer& ObjectInitializer);
+	UFUNCTION()
+	void HandleInProgressFilter();
+
+	UFUNCTION()
+	void HandleReadyFilter();
+
+	UFUNCTION()
+	void HandleCompletedFilter();
+
+	UFUNCTION()
+	void HandleFailedFilter();
 };

@@ -1,6 +1,10 @@
 #include "UI/CodexUIStyle.h"
 
 #include "Brushes/SlateRoundedBoxBrush.h"
+#include "Components/ContentWidget.h"
+#include "Components/PanelWidget.h"
+#include "Components/TextBlock.h"
+#include "Misc/Paths.h"
 #include "Styling/CoreStyle.h"
 
 FLinearColor FCodexUIColor::BgTealDeep() { return FCodexUIStyle::FromHex(TEXT("#1E6F68")); }
@@ -99,8 +103,37 @@ FButtonStyle FCodexUIStyle::ButtonStyle(ECodexUIButtonKind Kind)
 
 FSlateFontInfo FCodexUIStyle::Font(float Size, FName Typeface)
 {
-	const FName ResolvedTypeface = Typeface.IsNone() ? TEXT("Regular") : Typeface;
-	return FCoreStyle::GetDefaultFontStyle(ResolvedTypeface, Size);
+	const FString KoreanFallbackFont = FPaths::ProjectContentDir() / TEXT("UI/Fonts/NotoSansKR-VF.ttf");
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	return FSlateFontInfo(KoreanFallbackFont, Size);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+void FCodexUIStyle::ApplyFontToTextBlocks(UWidget* RootWidget)
+{
+	if (!RootWidget)
+	{
+		return;
+	}
+
+	if (UTextBlock* TextBlock = Cast<UTextBlock>(RootWidget))
+	{
+		const FSlateFontInfo ExistingFont = TextBlock->GetFont();
+		TextBlock->SetFont(Font(ExistingFont.Size > 0.0f ? ExistingFont.Size : FCodexUIFontSize::Body));
+	}
+
+	if (UPanelWidget* PanelWidget = Cast<UPanelWidget>(RootWidget))
+	{
+		const int32 ChildCount = PanelWidget->GetChildrenCount();
+		for (int32 ChildIndex = 0; ChildIndex < ChildCount; ++ChildIndex)
+		{
+			ApplyFontToTextBlocks(PanelWidget->GetChildAt(ChildIndex));
+		}
+	}
+	else if (UContentWidget* ContentWidget = Cast<UContentWidget>(RootWidget))
+	{
+		ApplyFontToTextBlocks(ContentWidget->GetContent());
+	}
 }
 
 FProgressBarStyle FCodexUIStyle::ProgressBarStyle(const FLinearColor& Fill)

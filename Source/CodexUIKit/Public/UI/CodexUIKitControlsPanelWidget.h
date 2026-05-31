@@ -7,6 +7,7 @@
 class UScrollBox;
 class USlider;
 class UTextBlock;
+class UButton;
 
 UCLASS()
 class CODEXUIKIT_API UCodexUIKitControlsPanelWidget : public UUserWidget
@@ -18,23 +19,45 @@ public:
 	void ResetDemoControls();
 
 protected:
-	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void NativeOnInitialized() override;
+	virtual void NativeConstruct() override;
 
 private:
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> BgmValueLabel;
 
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> SfxValueLabel;
 
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> ZoomValueLabel;
 
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> NoticeHeaderLabel;
 
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UScrollBox> NoticeScrollBox;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<USlider> BgmSlider;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<USlider> SfxSlider;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<USlider> ZoomSlider;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> AddNoticeButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> ScrollTopButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> ScrollBottomButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> ResetButton;
 
 	UPROPERTY()
 	TArray<FString> Notices;

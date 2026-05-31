@@ -8,7 +8,6 @@
 #include "GameFramework/PlayerController.h"
 #include "Misc/AutomationTest.h"
 #include "Tests/AutomationCommon.h"
-#include "UI/CodexUIKitDemoWidget.h"
 #include "UI/CodexUIKitPopupWidget.h"
 #include "UI/CodexUIKitQuestBoardWidget.h"
 #include "UI/CodexUIKitStandalonePanelWidget.h"
@@ -17,6 +16,17 @@
 
 namespace
 {
+template <typename TWidget>
+TSubclassOf<TWidget> ResolveWidgetClass(const TCHAR* WidgetBlueprintPath)
+{
+	if (UClass* WidgetBlueprintClass = LoadClass<TWidget>(nullptr, WidgetBlueprintPath))
+	{
+		return WidgetBlueprintClass;
+	}
+
+	return TWidget::StaticClass();
+}
+
 class FCodexUIKitVisualSmokeCommand final : public IAutomationLatentCommand
 {
 public:
@@ -50,31 +60,38 @@ public:
 
 		if (!StartupWidget.IsValid())
 		{
-			StartupWidget = CreateWidget<UCodexUIKitStartupWidget>(PlayerController, UCodexUIKitStartupWidget::StaticClass());
+			const TSubclassOf<UCodexUIKitStartupWidget> StartupClass = ResolveWidgetClass<UCodexUIKitStartupWidget>(
+				TEXT("/Game/UI/WBP/WBP_CodexUIKitStartup.WBP_CodexUIKitStartup_C"));
+			const TSubclassOf<UCodexUIKitStandalonePanelWidget> StandalonePanelClass = ResolveWidgetClass<UCodexUIKitStandalonePanelWidget>(
+				TEXT("/Game/UI/WBP/WBP_CodexUIKitStandalonePanel.WBP_CodexUIKitStandalonePanel_C"));
+			const TSubclassOf<UCodexUIKitPopupWidget> PopupClass = ResolveWidgetClass<UCodexUIKitPopupWidget>(
+				TEXT("/Game/UI/WBP/WBP_CodexUIKitPopup.WBP_CodexUIKitPopup_C"));
+			const TSubclassOf<UCodexUIKitToastWidget> ToastClass = ResolveWidgetClass<UCodexUIKitToastWidget>(
+				TEXT("/Game/UI/WBP/WBP_CodexUIKitToast.WBP_CodexUIKitToast_C"));
+			const TSubclassOf<UUserWidget> QuestBoardClass = ResolveWidgetClass<UCodexUIKitQuestBoardWidget>(
+				TEXT("/Game/UI/WBP/WBP_CodexUIKitQuestBoard.WBP_CodexUIKitQuestBoard_C"));
+
+			StartupWidget = CreateWidget<UCodexUIKitStartupWidget>(PlayerController, StartupClass);
 			Test->TestNotNull(TEXT("Startup widget can be created"), StartupWidget.Get());
 
-			DemoWidget = CreateWidget<UCodexUIKitDemoWidget>(PlayerController, UCodexUIKitDemoWidget::StaticClass());
-			Test->TestNotNull(TEXT("Demo widget can be created"), DemoWidget.Get());
-
-			PopupWidget = CreateWidget<UCodexUIKitPopupWidget>(PlayerController, UCodexUIKitPopupWidget::StaticClass());
+			PopupWidget = CreateWidget<UCodexUIKitPopupWidget>(PlayerController, PopupClass);
 			Test->TestNotNull(TEXT("Popup widget can be created"), PopupWidget.Get());
 
-			StandalonePanelWidget = CreateWidget<UCodexUIKitStandalonePanelWidget>(PlayerController, UCodexUIKitStandalonePanelWidget::StaticClass());
+			StandalonePanelWidget = CreateWidget<UCodexUIKitStandalonePanelWidget>(PlayerController, StandalonePanelClass);
 			Test->TestNotNull(TEXT("Standalone panel widget can be created"), StandalonePanelWidget.Get());
 
-			ToastWidget = CreateWidget<UCodexUIKitToastWidget>(PlayerController, UCodexUIKitToastWidget::StaticClass());
+			ToastWidget = CreateWidget<UCodexUIKitToastWidget>(PlayerController, ToastClass);
 			Test->TestNotNull(TEXT("Toast widget can be created"), ToastWidget.Get());
 
-			if (!StartupWidget.IsValid() || !DemoWidget.IsValid() || !PopupWidget.IsValid() || !StandalonePanelWidget.IsValid() || !ToastWidget.IsValid())
+			if (!StartupWidget.IsValid() || !PopupWidget.IsValid() || !StandalonePanelWidget.IsValid() || !ToastWidget.IsValid())
 			{
 				return true;
 			}
 
-			DemoWidget->AddToViewport(70);
 			StartupWidget->AddToViewport(80);
 			StandalonePanelWidget->ConfigurePanel(
 				NSLOCTEXT("CodexUIKitTest", "VisualSmokeStandaloneQuestTitle", "자동화 퀘스트 보드"),
-				UCodexUIKitQuestBoardStandaloneWidget::StaticClass(),
+				QuestBoardClass,
 				FVector2D(1120.0f, 640.0f));
 			StandalonePanelWidget->AddToViewport(85);
 			PopupWidget->ConfigurePopup(
@@ -90,7 +107,6 @@ public:
 				10.0f);
 			ToastWidget->AddToViewport(95);
 
-			Test->TestTrue(TEXT("Demo widget is in viewport"), DemoWidget->IsInViewport());
 			Test->TestTrue(TEXT("Startup widget is in viewport"), StartupWidget->IsInViewport());
 			Test->TestTrue(TEXT("Standalone panel widget is in viewport"), StandalonePanelWidget->IsInViewport());
 			Test->TestTrue(TEXT("Popup widget is in viewport"), PopupWidget->IsInViewport());
@@ -108,7 +124,7 @@ public:
 		if (Phase == 0)
 		{
 			const bool bScreenshotRequested = TakeUiScreenshot(World, TEXT("CodexUIKit_StartupAndPopupSmoke"));
-			Test->TestTrue(TEXT("Demo, startup, and popup screenshot request succeeded"), bScreenshotRequested);
+			Test->TestTrue(TEXT("Startup, standalone, and popup screenshot request succeeded"), bScreenshotRequested);
 
 			if (PopupWidget.IsValid())
 			{
@@ -151,7 +167,6 @@ private:
 	double WidgetCreateTime = 0.0;
 	int32 Phase = 0;
 	TWeakObjectPtr<UCodexUIKitStartupWidget> StartupWidget;
-	TWeakObjectPtr<UCodexUIKitDemoWidget> DemoWidget;
 	TWeakObjectPtr<UCodexUIKitPopupWidget> PopupWidget;
 	TWeakObjectPtr<UCodexUIKitStandalonePanelWidget> StandalonePanelWidget;
 	TWeakObjectPtr<UCodexUIKitToastWidget> ToastWidget;
