@@ -58,10 +58,8 @@ void UCodexUIKitPopupWidget::ConfigurePopup(
 	SyncText();
 }
 
-void UCodexUIKitPopupWidget::NativeConstruct()
+TSharedRef<SWidget> UCodexUIKitPopupWidget::RebuildWidget()
 {
-	Super::NativeConstruct();
-
 	UOverlay* Root = WidgetTree->ConstructWidget<UOverlay>();
 	WidgetTree->RootWidget = Root;
 
@@ -142,6 +140,7 @@ void UCodexUIKitPopupWidget::NativeConstruct()
 	ConfirmSlot->SetPadding(FMargin(FCodexUISpace::S2, 0.0f, 0.0f, 0.0f));
 
 	SyncText();
+	return Super::RebuildWidget();
 }
 
 void UCodexUIKitPopupWidget::SyncText()

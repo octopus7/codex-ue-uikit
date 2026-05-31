@@ -2,15 +2,15 @@
 
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/PlayerController.h"
-#include "UI/CodexUIKitDemoWidget.h"
+#include "UI/CodexUIKitStartupWidget.h"
 
 AUIKitDemoStartupActor::AUIKitDemoStartupActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
-	DemoWidgetClass = UCodexUIKitDemoWidget::StaticClass();
+	StartupWidgetClass = UCodexUIKitStartupWidget::StaticClass();
 }
 
-UUserWidget* AUIKitDemoStartupActor::CreateDemoWidgetForPlayer(APlayerController* PlayerController, TSubclassOf<UUserWidget> WidgetClass, int32 ZOrder)
+UUserWidget* AUIKitDemoStartupActor::CreateStartupWidgetForPlayer(APlayerController* PlayerController, TSubclassOf<UUserWidget> WidgetClass, int32 ZOrder)
 {
 	if (!PlayerController)
 	{
@@ -20,7 +20,7 @@ UUserWidget* AUIKitDemoStartupActor::CreateDemoWidgetForPlayer(APlayerController
 	TSubclassOf<UUserWidget> ResolvedClass = WidgetClass;
 	if (!ResolvedClass)
 	{
-		ResolvedClass = UCodexUIKitDemoWidget::StaticClass();
+		ResolvedClass = UCodexUIKitStartupWidget::StaticClass();
 	}
 	UUserWidget* Widget = CreateWidget<UUserWidget>(PlayerController, ResolvedClass);
 	if (!Widget)
@@ -46,5 +46,5 @@ void AUIKitDemoStartupActor::BeginPlay()
 		return;
 	}
 
-	DemoWidget = CreateDemoWidgetForPlayer(GetWorld()->GetFirstPlayerController(), DemoWidgetClass, ZOrder);
+	StartupWidget = CreateStartupWidgetForPlayer(GetWorld()->GetFirstPlayerController(), StartupWidgetClass, ZOrder);
 }

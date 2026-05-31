@@ -23,5 +23,10 @@ public class CodexUIKit : ModuleRules
 			"Slate",
 			"SlateCore"
 		});
+
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.Add("FunctionalTesting");
+		}
 	}
 }

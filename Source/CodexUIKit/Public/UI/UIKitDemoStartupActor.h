@@ -14,18 +14,18 @@ class CODEXUIKIT_API AUIKitDemoStartupActor : public AActor
 public:
 	AUIKitDemoStartupActor();
 
-	static UUserWidget* CreateDemoWidgetForPlayer(APlayerController* PlayerController, TSubclassOf<UUserWidget> WidgetClass, int32 ZOrder);
+	static UUserWidget* CreateStartupWidgetForPlayer(APlayerController* PlayerController, TSubclassOf<UUserWidget> WidgetClass, int32 ZOrder);
 
 protected:
 	virtual void BeginPlay() override;
 
 private:
 	UPROPERTY(EditAnywhere, Category = "Codex UIKit")
-	TSubclassOf<UUserWidget> DemoWidgetClass;
+	TSubclassOf<UUserWidget> StartupWidgetClass;
 
 	UPROPERTY(EditAnywhere, Category = "Codex UIKit")
 	int32 ZOrder = 0;
 
 	UPROPERTY()
-	TObjectPtr<UUserWidget> DemoWidget;
+	TObjectPtr<UUserWidget> StartupWidget;
 };

@@ -28,8 +28,11 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
+#include "UI/CodexUIKitControlsPanelWidget.h"
 #include "UI/CodexUIStyle.h"
+#include "UI/CodexUIKitInventoryGridWidget.h"
 #include "UI/CodexUIKitPopupWidget.h"
+#include "UI/CodexUIKitQuestBoardWidget.h"
 
 namespace
 {
@@ -128,9 +131,9 @@ void AddHBoxChild(UHorizontalBox& Box, UWidget* Child, const FMargin Padding = F
 }
 }
 
-void UCodexUIKitDemoWidget::NativeConstruct()
+TSharedRef<SWidget> UCodexUIKitDemoWidget::RebuildWidget()
 {
-	Super::NativeConstruct();
+	LoadedSourceTextures.Reset();
 
 	UScaleBox* RootScale = WidgetTree->ConstructWidget<UScaleBox>();
 	RootScale->SetStretch(EStretch::ScaleToFit);
@@ -168,6 +171,8 @@ void UCodexUIKitDemoWidget::NativeConstruct()
 	BuildSideMenu(*Canvas);
 	BuildMainPanels(*Canvas);
 	BuildBottomExamples(*Canvas);
+
+	return Super::RebuildWidget();
 }
 
 void UCodexUIKitDemoWidget::BuildHeader(UCanvasPanel& Canvas)
@@ -218,8 +223,8 @@ void UCodexUIKitDemoWidget::BuildHeader(UCanvasPanel& Canvas)
 	AddHBoxChild(*ProfileRow, ProfileInfo, FMargin(0.0f), 1.0f);
 
 	UVerticalBox* Currency = WidgetTree->ConstructWidget<UVerticalBox>();
-	AddVBoxChild(*Currency, MakeText(*WidgetTree, TEXT("🟡  12,850"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), TEXT("Bold")));
-	AddVBoxChild(*Currency, MakeText(*WidgetTree, TEXT("🔷  230     +"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), TEXT("Bold")), FMargin(0.0f, 16.0f, 0.0f, 0.0f));
+	AddVBoxChild(*Currency, MakeText(*WidgetTree, TEXT("CO  12,850"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), TEXT("Bold")));
+	AddVBoxChild(*Currency, MakeText(*WidgetTree, TEXT("GE  230     +"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), TEXT("Bold")), FMargin(0.0f, 16.0f, 0.0f, 0.0f));
 	AddHBoxChild(*ProfileRow, Currency, FMargin(24.0f, 0.0f, 0.0f, 0.0f));
 	AddCanvasChild(Canvas, Profile, FVector2D(1066.0f, 26.0f), FVector2D(448.0f, 102.0f));
 }
@@ -244,10 +249,10 @@ void UCodexUIKitDemoWidget::BuildButtons(UCanvasPanel& Canvas)
 		{ TEXT("강조 버튼 Hover"), ECodexUIButtonKind::Accent, true },
 		{ TEXT("보조 버튼 Hover"), ECodexUIButtonKind::Info, true },
 		{ TEXT("비활성 버튼"), ECodexUIButtonKind::Neutral, false },
-		{ TEXT("✓ 확인"), ECodexUIButtonKind::Primary, true },
-		{ TEXT("✕ 취소"), ECodexUIButtonKind::Neutral, true },
-		{ TEXT("🗑 삭제"), ECodexUIButtonKind::Danger, true },
-		{ TEXT("↓ 받기"), ECodexUIButtonKind::Info, true }
+		{ TEXT("확인"), ECodexUIButtonKind::Primary, true },
+		{ TEXT("취소"), ECodexUIButtonKind::Neutral, true },
+		{ TEXT("삭제"), ECodexUIButtonKind::Danger, true },
+		{ TEXT("받기"), ECodexUIButtonKind::Info, true }
 	};
 
 	for (int32 Index = 0; Index < UE_ARRAY_COUNT(Specs); ++Index)
@@ -272,7 +277,7 @@ void UCodexUIKitDemoWidget::BuildIconAndStatus(UCanvasPanel& Canvas)
 	IconPanel->SetPadding(FMargin(8.0f));
 	UHorizontalBox* Icons = WidgetTree->ConstructWidget<UHorizontalBox>();
 	IconPanel->SetContent(Icons);
-	const FString IconLabels[] = { TEXT("🎒"), TEXT("⚔"), TEXT("🛡"), TEXT("⌖"), TEXT("⚗"), TEXT("▣"), TEXT("🏆"), TEXT("✉"), TEXT("⚙") };
+	const FString IconLabels[] = { TEXT("가"), TEXT("검"), TEXT("방"), TEXT("준"), TEXT("약"), TEXT("상"), TEXT("컵"), TEXT("편"), TEXT("설") };
 	for (const FString& IconLabel : IconLabels)
 	{
 		UBorder* Cell = MakePanel(*WidgetTree, FCodexUIColor::SurfaceRaised(), FCodexUIRadius::SM);
@@ -319,7 +324,7 @@ void UCodexUIKitDemoWidget::BuildSideMenu(UCanvasPanel& Canvas)
 	UBorder* MenuPanel = MakePanel(*WidgetTree);
 	UVerticalBox* Menu = WidgetTree->ConstructWidget<UVerticalBox>();
 	MenuPanel->SetContent(Menu);
-	const FString MenuItems[] = { TEXT("🎒  퀘스트        !"), TEXT("🧰  인벤토리"), TEXT("🗺  지도"), TEXT("🏆  업적"), TEXT("📖  도감"), TEXT("⚙  설정") };
+	const FString MenuItems[] = { TEXT("퀘스트        !"), TEXT("인벤토리"), TEXT("지도"), TEXT("업적"), TEXT("도감"), TEXT("설정") };
 	for (int32 Index = 0; Index < UE_ARRAY_COUNT(MenuItems); ++Index)
 	{
 		UBorder* Row = WidgetTree->ConstructWidget<UBorder>();
@@ -353,7 +358,7 @@ void UCodexUIKitDemoWidget::BuildSideMenu(UCanvasPanel& Canvas)
 	UBorder* Reward = MakePanel(*WidgetTree);
 	UVerticalBox* RewardStack = WidgetTree->ConstructWidget<UVerticalBox>();
 	Reward->SetContent(RewardStack);
-	UTextBlock* Check = MakeText(*WidgetTree, TEXT("✓"), 28.0f, FCodexUIColor::Primary(), TEXT("Bold"));
+	UTextBlock* Check = MakeText(*WidgetTree, TEXT("OK"), 28.0f, FCodexUIColor::Primary(), TEXT("Bold"));
 	Check->SetJustification(ETextJustify::Center);
 	AddVBoxChild(*RewardStack, Check, FMargin(0.0f, 0.0f, 0.0f, 8.0f), HAlign_Center);
 	UTextBlock* RewardTitle = MakeText(*WidgetTree, TEXT("아이템을 획득했습니다!"), FCodexUIFontSize::Caption, FCodexUIColor::BgTealDeep(), TEXT("Bold"));
@@ -412,15 +417,15 @@ void UCodexUIKitDemoWidget::BuildMainPanels(UCanvasPanel& Canvas)
 	UBorder* QuestListPanel = MakePanel(*WidgetTree);
 	UVerticalBox* QuestList = WidgetTree->ConstructWidget<UVerticalBox>();
 	QuestListPanel->SetContent(QuestList);
-	AddVBoxChild(*QuestList, MakeText(*WidgetTree, TEXT("진행 중 (2)                                      ˅"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), TEXT("Bold")), FMargin(0.0f, 0.0f, 0.0f, 10.0f));
+	AddVBoxChild(*QuestList, MakeText(*WidgetTree, TEXT("진행 중 (2)                                      v"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), TEXT("Bold")), FMargin(0.0f, 0.0f, 0.0f, 10.0f));
 	const FString QuestRows[] =
 	{
 		TEXT("!   구조 복귀 확인\n     구급 카트에 실려 병원 돌아오기        0/1"),
 		TEXT("!   고장 난 스위퍼 수리\n     스위퍼 부품 수집                         0/3"),
-		TEXT("완료 가능 (1)                                ˅"),
+		TEXT("완료 가능 (1)                                v"),
 		TEXT("!   식량 부족\n     식량을 루나에게 전달하기"),
-		TEXT("완료 (12)                                    ˅"),
-		TEXT("실패 (1)                                    ˅")
+		TEXT("완료 (12)                                    v"),
+		TEXT("실패 (1)                                    v")
 	};
 	for (int32 Index = 0; Index < UE_ARRAY_COUNT(QuestRows); ++Index)
 	{
@@ -445,7 +450,7 @@ void UCodexUIKitDemoWidget::BuildMainPanels(UCanvasPanel& Canvas)
 	AddVBoxChild(*Detail, MakeText(*WidgetTree, TEXT("목표"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), TEXT("Bold")), FMargin(0.0f, 0.0f, 0.0f, 12.0f));
 	AddVBoxChild(*Detail, MakeText(*WidgetTree, TEXT("• 구급 카트에 실려 병원으로 돌아오기 (0/1)"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary()), FMargin(0.0f, 0.0f, 0.0f, 38.0f));
 	AddVBoxChild(*Detail, MakeText(*WidgetTree, TEXT("보상"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), TEXT("Bold")), FMargin(0.0f, 0.0f, 0.0f, 12.0f));
-	AddVBoxChild(*Detail, MakeText(*WidgetTree, TEXT("🟡 코인 50"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary()), FMargin(0.0f, 0.0f, 0.0f, 66.0f));
+	AddVBoxChild(*Detail, MakeText(*WidgetTree, TEXT("코인 50"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary()), FMargin(0.0f, 0.0f, 0.0f, 66.0f));
 	UButton* RouteButton = MakeButton(*WidgetTree, TEXT("길찾기 시작"), ECodexUIButtonKind::Info);
 	RouteButton->OnClicked.AddDynamic(this, &ThisClass::HandleOpenActionPopup);
 	AddVBoxChild(*Detail, Sized(*WidgetTree, RouteButton, 126.0f, 44.0f), FMargin(0.0f), HAlign_Center);
@@ -459,28 +464,32 @@ void UCodexUIKitDemoWidget::BuildMainPanels(UCanvasPanel& Canvas)
 	AddHBoxChild(*InvHeader, MakeText(*WidgetTree, TEXT("인벤토리"), FCodexUIFontSize::H3, FCodexUIColor::TextPrimary(), TEXT("Bold")), FMargin(0.0f), 1.0f);
 	AddHBoxChild(*InvHeader, MakeText(*WidgetTree, TEXT("24/40   +"), FCodexUIFontSize::Body, FCodexUIColor::TextSecondary(), TEXT("Bold")));
 	AddVBoxChild(*Inventory, InvHeader, FMargin(0.0f, 0.0f, 0.0f, 14.0f));
-	if (UTexture2D* ItemsTexture = LoadSourceTexture(TEXT("inventory-items.png")))
-	{
-		UImage* Items = WidgetTree->ConstructWidget<UImage>();
-		Items->SetBrushFromTexture(ItemsTexture, true);
-		AddVBoxChild(*Inventory, Sized(*WidgetTree, Items, 326.0f, 160.0f), FMargin(0.0f, 0.0f, 0.0f, 16.0f));
-	}
 	for (int32 RowIndex = 0; RowIndex < 2; ++RowIndex)
 	{
 		UHorizontalBox* LockedRow = WidgetTree->ConstructWidget<UHorizontalBox>();
 		for (int32 Column = 0; Column < 5; ++Column)
 		{
 			UBorder* Cell = MakePanel(*WidgetTree, FCodexUIColor::SurfaceSunken(), FCodexUIRadius::SM);
-			Cell->SetContent(MakeText(*WidgetTree, TEXT("🔒"), 22.0f, FCodexUIColor::TextMuted()));
+			Cell->SetContent(MakeText(*WidgetTree, TEXT("잠김"), FCodexUIFontSize::Caption, FCodexUIColor::TextMuted()));
 			AddHBoxChild(*LockedRow, Sized(*WidgetTree, Cell, 56.0f, 52.0f), FMargin(0.0f, 0.0f, 7.0f, 7.0f));
 		}
 		AddVBoxChild(*Inventory, LockedRow);
 	}
 	UHorizontalBox* InvFooter = WidgetTree->ConstructWidget<UHorizontalBox>();
-	AddHBoxChild(*InvFooter, MakeText(*WidgetTree, TEXT("🟡 12,850"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary()), FMargin(0.0f), 1.0f);
-	AddHBoxChild(*InvFooter, MakeText(*WidgetTree, TEXT("18.6 / 40kg      🗑"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), TEXT("Bold")));
+	AddHBoxChild(*InvFooter, MakeText(*WidgetTree, TEXT("CO 12,850"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary()), FMargin(0.0f), 1.0f);
+	AddHBoxChild(*InvFooter, MakeText(*WidgetTree, TEXT("18.6 / 40kg      삭제"), FCodexUIFontSize::Body, FCodexUIColor::TextPrimary(), TEXT("Bold")));
 	AddVBoxChild(*Inventory, InvFooter, FMargin(0.0f, 8.0f, 0.0f, 0.0f));
 	AddCanvasChild(Canvas, InventoryPanel, FVector2D(1176.0f, 342.0f), FVector2D(340.0f, 416.0f));
+
+	if (UCodexUIKitQuestBoardWidget* QuestBoard = CreateWidget<UCodexUIKitQuestBoardWidget>(GetOwningPlayer(), UCodexUIKitQuestBoardWidget::StaticClass()))
+	{
+		AddCanvasChild(Canvas, QuestBoard, FVector2D(610.0f, 345.0f), FVector2D(548.0f, 422.0f), 20);
+	}
+
+	if (UCodexUIKitInventoryGridWidget* InventoryGrid = CreateWidget<UCodexUIKitInventoryGridWidget>(GetOwningPlayer(), UCodexUIKitInventoryGridWidget::StaticClass()))
+	{
+		AddCanvasChild(Canvas, InventoryGrid, FVector2D(1176.0f, 342.0f), FVector2D(340.0f, 416.0f), 20);
+	}
 }
 
 void UCodexUIKitDemoWidget::BuildBottomExamples(UCanvasPanel& Canvas)
@@ -496,8 +505,8 @@ void UCodexUIKitDemoWidget::BuildBottomExamples(UCanvasPanel& Canvas)
 		AddVBoxChild(*Stack, Row);
 		AddCanvasChild(Canvas, Stack, Pos, FVector2D(220.0f, 56.0f));
 	};
-	AddMetric(TEXT("HEALTH BAR"), TEXT("♥"), 0.70f, FCodexUIColor::Primary(), FVector2D(276.0f, 796.0f), TEXT("360 / 500"));
-	AddMetric(TEXT("ENERGY BAR"), TEXT("⚡"), 0.78f, FCodexUIColor::Warning(), FVector2D(500.0f, 796.0f), TEXT("72 / 100"));
+	AddMetric(TEXT("HEALTH BAR"), TEXT("HP"), 0.70f, FCodexUIColor::Primary(), FVector2D(276.0f, 796.0f), TEXT("360 / 500"));
+	AddMetric(TEXT("ENERGY BAR"), TEXT("EN"), 0.78f, FCodexUIColor::Warning(), FVector2D(500.0f, 796.0f), TEXT("72 / 100"));
 	AddMetric(TEXT("PROGRESS BAR"), TEXT(""), 0.60f, FCodexUIColor::InfoDark(), FVector2D(720.0f, 796.0f), TEXT("60%"));
 	AddMetric(TEXT("SLIDER"), TEXT("BGM"), 0.68f, FCodexUIColor::BgTeal(), FVector2D(976.0f, 796.0f), TEXT("30"));
 
@@ -505,7 +514,7 @@ void UCodexUIKitDemoWidget::BuildBottomExamples(UCanvasPanel& Canvas)
 	NoticePanel->SetPadding(FMargin(0.0f));
 	UVerticalBox* Notices = WidgetTree->ConstructWidget<UVerticalBox>();
 	NoticePanel->SetContent(Notices);
-	const FString NoticeTexts[] = { TEXT("✓  퀘스트를 완료했습니다.          ×"), TEXT("!  인벤토리가 가득 찼습니다.       ×"), TEXT("!  새로운 메시지가 도착했습니다.    ×") };
+	const FString NoticeTexts[] = { TEXT("OK  퀘스트를 완료했습니다.          x"), TEXT("!  인벤토리가 가득 찼습니다.       x"), TEXT("!  새로운 메시지가 도착했습니다.    x") };
 	const FLinearColor NoticeColors[] = { FCodexUIColor::Primary(), FCodexUIColor::Warning(), FCodexUIColor::InfoDark() };
 	for (int32 Index = 0; Index < UE_ARRAY_COUNT(NoticeTexts); ++Index)
 	{
@@ -519,7 +528,7 @@ void UCodexUIKitDemoWidget::BuildBottomExamples(UCanvasPanel& Canvas)
 
 	AddCanvasChild(Canvas, MakeText(*WidgetTree, TEXT("HOTBAR"), FCodexUIFontSize::Caption, FCodexUIColor::TextInverse(), TEXT("Bold")), FVector2D(486.0f, 886.0f), FVector2D(100.0f, 20.0f));
 	UHorizontalBox* Hotbar = WidgetTree->ConstructWidget<UHorizontalBox>();
-	const FString Slots[] = { TEXT("1\n⚔\n30"), TEXT("3\n🧰\n5"), TEXT("3\n🧪\n2"), TEXT("4\n🧴\n7"), TEXT("5\n▰\n3"), TEXT("7\n🔨\n1"), TEXT("+") };
+	const FString Slots[] = { TEXT("1\n검\n30"), TEXT("3\n상\n5"), TEXT("3\n약\n2"), TEXT("4\n병\n7"), TEXT("5\n탄\n3"), TEXT("7\n망\n1"), TEXT("+") };
 	for (const FString& SlotText : Slots)
 	{
 		UBorder* HotbarSlotBorder = MakePanel(*WidgetTree, FCodexUIColor::SurfaceRaised(), FCodexUIRadius::SM);
@@ -536,7 +545,7 @@ void UCodexUIKitDemoWidget::BuildBottomExamples(UCanvasPanel& Canvas)
 		Minimap->SetBrushFromTexture(MinimapTexture, true);
 		AddCanvasChild(Canvas, MakeText(*WidgetTree, TEXT("MINI MAP"), FCodexUIFontSize::Caption, FCodexUIColor::BgTealDeep(), TEXT("Bold")), FVector2D(1048.0f, 876.0f), FVector2D(100.0f, 18.0f));
 		AddCanvasChild(Canvas, Sized(*WidgetTree, Minimap, 132.0f, 132.0f), FVector2D(1042.0f, 892.0f), FVector2D(132.0f, 132.0f));
-		AddCanvasChild(Canvas, MakeText(*WidgetTree, TEXT("+\n−"), 26.0f, FCodexUIColor::TextPrimary(), TEXT("Bold")), FVector2D(1178.0f, 945.0f), FVector2D(40.0f, 70.0f));
+		AddCanvasChild(Canvas, MakeText(*WidgetTree, TEXT("+\n-"), 26.0f, FCodexUIColor::TextPrimary(), TEXT("Bold")), FVector2D(1178.0f, 945.0f), FVector2D(40.0f, 70.0f));
 	}
 
 	AddCanvasChild(Canvas, MakeText(*WidgetTree, TEXT("TOOLTIP EXAMPLE"), FCodexUIFontSize::Caption, FCodexUIColor::TextPrimary(), TEXT("Bold")), FVector2D(1224.0f, 788.0f), FVector2D(160.0f, 20.0f));
@@ -558,8 +567,13 @@ void UCodexUIKitDemoWidget::BuildBottomExamples(UCanvasPanel& Canvas)
 	AddHBoxChild(*TooltipHeader, TooltipText, FMargin(0.0f), 1.0f);
 	AddHBoxChild(*TooltipHeader, MakeTag(*WidgetTree, TEXT("희귀"), FCodexUIColor::Info()), FMargin(10.0f, 0.0f, 0.0f, 0.0f));
 	AddVBoxChild(*TooltipStack, TooltipHeader, FMargin(0.0f, 0.0f, 0.0f, 22.0f));
-	AddVBoxChild(*TooltipStack, MakeText(*WidgetTree, TEXT("판매가                                      🟡 150"), FCodexUIFontSize::Caption, FCodexUIColor::TextPrimary(), TEXT("Bold")));
+	AddVBoxChild(*TooltipStack, MakeText(*WidgetTree, TEXT("판매가                                      CO 150"), FCodexUIFontSize::Caption, FCodexUIColor::TextPrimary(), TEXT("Bold")));
 	AddCanvasChild(Canvas, Tooltip, FVector2D(1222.0f, 806.0f), FVector2D(292.0f, 193.0f));
+
+	if (UCodexUIKitControlsPanelWidget* ControlsPanel = CreateWidget<UCodexUIKitControlsPanelWidget>(GetOwningPlayer(), UCodexUIKitControlsPanelWidget::StaticClass()))
+	{
+		AddCanvasChild(Canvas, ControlsPanel, FVector2D(248.0f, 778.0f), FVector2D(930.0f, 218.0f), 20);
+	}
 }
 
 UTexture2D* UCodexUIKitDemoWidget::LoadSourceTexture(const FString& FileName)

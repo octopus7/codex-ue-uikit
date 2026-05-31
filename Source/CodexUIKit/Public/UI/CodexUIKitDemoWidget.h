@@ -13,7 +13,7 @@ class CODEXUIKIT_API UCodexUIKitDemoWidget : public UUserWidget
 	GENERATED_BODY()
 
 protected:
-	virtual void NativeConstruct() override;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 private:
 	UPROPERTY()

@@ -22,7 +22,7 @@ public:
 		bool bInShowCancel);
 
 protected:
-	virtual void NativeConstruct() override;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 private:
 	UPROPERTY()
