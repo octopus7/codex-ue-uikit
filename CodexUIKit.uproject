@@ -3,7 +3,13 @@
 	"EngineAssociation": "5.7",
 	"Category": "",
 	"Description": "Codex UIKit",
-	"Modules": [],
+	"Modules": [
+		{
+			"Name": "CodexUIKit",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
 	"Plugins": [
 		{
 			"Name": "ModelingToolsEditorMode",
